@@ -6,13 +6,12 @@ import tkinter as tk
 from bs4 import BeautifulSoup as BS
 import re
 
-# https://cdp.contentdelivery.nu/caf5f9bf-5ad3-4076-85db-e20ff648b0d7/20220324142531/extract/assets/img/layout/1.jpg
-
-
 # Code for downloading and compressing
 def Program (base_url, pages):
+  # Make temporary directory
   os.mkdir("./ImageToPDF")
 
+  # Download all pages as .jpg
   for page in range(pages):
 
     image_url = base_url + str(page+1) + ".jpg"
@@ -25,29 +24,36 @@ def Program (base_url, pages):
 
   filenames = []
 
+  # Get all files in temporary directory
   for path in os.listdir("./ImageToPDF/"):
     if os.path.join(path,"./ImageToPDF/"):
       filenames.append(path)
 
+  # Sort the files
   filenames.sort(key=lambda f: int(re.sub('\D', '', f)))
 
+  # Open all images
   imageList = [
     Image.open("./ImageToPDF/" + image)
     for image in filenames
   ]
 
+  # Make pdf of all images
   imageList[0].save(
     "./result.pdf", "PDF", resolution=150.0, save_all=True, append_images=imageList[1:]
   )
 
+  # Remove temporary directory (with images)
   shutil.rmtree("./ImageToPDF")
 
 
 #Extracting base url
 def extract(input_url):
+  # Split URL at /
   url_list = input_url.split("/")
   base_url = ""
 
+  # Convert to https
   if url_list[0] == "http:":
     url_list[0] = "https:"
 
@@ -55,12 +61,14 @@ def extract(input_url):
     url_list.insert(0, "https:")
     url_list.insert(1, "")
 
+  # Remove "jpg"
   if "jpg" in url_list[-1]:
     url_list.pop()
 
   elif url_list[-1] == "":
     url_list.pop()
 
+  # Construct base URL
   match url_list[-1]:
     case "layout":
       url_list.append("")
@@ -87,7 +95,7 @@ def extract(input_url):
       url_list.append("layout")
       url_list.append("")
 
-
+  # Add all / back
   for i in range(len(url_list) - 1):
     base_url += url_list[i] + "/"
     i += 1
@@ -95,7 +103,7 @@ def extract(input_url):
   return base_url
 
 
-# Converging to page number
+# Converging to page number (guess and check algorithm)
 def converge(base_url, lower, upper):
   middle = ((upper - lower) // 2) + lower
 
@@ -114,7 +122,7 @@ def converge(base_url, lower, upper):
 
 
 
-# Code for executable
+# Code for UI
 root = tk.Tk()
 canvas = tk.Canvas(root, width=300, height=300)
 root.title("Noordhoff PDF Maker")
@@ -144,7 +152,6 @@ def clicked():
       root.update()
 
       base_url, pages = converge(extract(e_url.get()), 1, 2000)
-      # base_url, pages = "https://cdp.contentdelivery.nu/caf5f9bf-5ad3-4076-85db-e20ff648b0d7/20220324142531/extract/assets/img/layout/", 200
 
       l_appr = tk.Label(root, text="Program will take approximately " + str(round(pages*0.055)+1) + " seconds to run", fg="black", font=("consolas", 12, "bold"), anchor="w")
       l_appr.pack(fill="both")
@@ -156,9 +163,23 @@ def clicked():
       root.update()
 
     except:
-      l_errurl = tk.Label(root, text="Please enter a valid URL", fg="black", font=("consolas", 12, "bold"), anchor="w")
-      l_errurl.pack(fill="both")
-      l_errurl.place(height=20, width=500, x=0, y=75)
+      print("except")
+      try:
+        base_url, pages = converge(extract(e_url.get()), 1, 2010)
+
+        l_appr = tk.Label(root, text="Program will take approximately " + str(round(pages*0.055)+1) + " seconds to run", fg="black", font=("consolas", 12, "bold"), anchor="w")
+        l_appr.pack(fill="both")
+        l_appr.place(height=20, width=500, x=0, y=75)
+
+        b_cont = tk.Button(text="Click to continue running", command= lambda: continued(base_url, pages), bg="white", fg="black")
+        b_cont.pack()
+        b_cont.place(height=20, width=200, x=0, y=100)
+        root.update()
+
+      except:
+        l_errurl = tk.Label(root, text="Please enter a valid URL", fg="black", font=("consolas", 12, "bold"), anchor="w")
+        l_errurl.pack(fill="both")
+        l_errurl.place(height=20, width=500, x=0, y=75)
 
 
 def continued(base_url, pages):
